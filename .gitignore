@@ -95,6 +95,7 @@ dmypy.json
 *.local
 *.log
 logs/
+node_modules/
 
 # Database
 *.db

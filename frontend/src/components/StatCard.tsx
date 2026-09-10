@@ -1,0 +1,1 @@
+export default function StatCard({ title, value, hint }: { title: string; value: string | number; hint?: string }) { return <div className="stat"><div className="eyebrow">{title}</div><div className="stat-value">{value}</div>{hint && <div className="hint">{hint}</div>}</div>; }
