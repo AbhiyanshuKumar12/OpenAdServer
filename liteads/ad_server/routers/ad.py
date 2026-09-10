@@ -3,6 +3,7 @@ Ad serving endpoints.
 """
 
 from fastapi import APIRouter, Depends, Request
+from urllib.parse import quote
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from liteads.ad_server.services.ad_service import AdService
@@ -72,9 +73,9 @@ async def request_ads(
     for candidate in candidates[: ad_request.num_ads]:
         # Build tracking URLs
         tracking = TrackingUrls(
-            impression_url=f"{base_url}/api/v1/event/track?type=impression&req={request_id}&ad={candidate.campaign_id}",
-            click_url=f"{base_url}/api/v1/event/track?type=click&req={request_id}&ad={candidate.campaign_id}",
-            conversion_url=f"{base_url}/api/v1/event/track?type=conversion&req={request_id}&ad={candidate.campaign_id}",
+            impression_url=f"{base_url}/api/v1/event/track?type=impression&req={request_id}&ad=ad_{candidate.campaign_id}_{candidate.creative_id}&slot={quote(ad_request.slot_id)}",
+            click_url=f"{base_url}/api/v1/event/track?type=click&req={request_id}&ad=ad_{candidate.campaign_id}_{candidate.creative_id}&slot={quote(ad_request.slot_id)}",
+            conversion_url=f"{base_url}/api/v1/event/track?type=conversion&req={request_id}&ad=ad_{candidate.campaign_id}_{candidate.creative_id}&slot={quote(ad_request.slot_id)}",
         )
 
         # Build creative response

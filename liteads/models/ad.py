@@ -136,6 +136,9 @@ class Creative(Base, TimestampMixin):
 
     # Quality score (0-100)
     quality_score: Mapped[int] = mapped_column(Integer, default=80)
+    impressions: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    clicks: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    conversions: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     # Relationships
     campaign: Mapped["Campaign"] = relationship("Campaign", back_populates="creatives")

@@ -10,6 +10,7 @@ from liteads.models.ad import (
     HourlyStat,
     TargetingRule,
 )
+from liteads.models.publisher import AdSlot, Publisher, PublisherDailyStat
 from liteads.models.base import (
     Base,
     BidType,
@@ -35,4 +36,7 @@ __all__ = [
     "Creative",
     "TargetingRule",
     "HourlyStat",
+    "Publisher",
+    "AdSlot",
+    "PublisherDailyStat",
 ]
