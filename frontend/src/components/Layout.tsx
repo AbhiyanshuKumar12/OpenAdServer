@@ -1,7 +1,129 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import type { Role } from "../types";
-const NAV: Record<Role, { to: string; label: string }[]> = { admin: [{ to: "/admin", label: "Dashboard" }, { to: "/admin/advertisers", label: "Advertisers" }, { to: "/admin/campaigns", label: "Campaigns" }, { to: "/admin/publishers", label: "Publishers" }], advertiser: [{ to: "/advertiser", label: "Dashboard" }, { to: "/advertiser/campaigns/new", label: "New Campaign" }], publisher: [{ to: "/publisher", label: "Dashboard" }, { to: "/publisher/integration", label: "Integration" }] };
-const SHARED = [{ to: "/tools", label: "Ad Tester" }, { to: "/health", label: "System Health" }];
-const ROLE_LABEL: Record<Role, string> = { admin: "Platform Admin", advertiser: "Advertiser", publisher: "Publisher" };
-export default function Layout() { const { session, logout } = useAuth(); const navigate = useNavigate(); if (!session) return null; const { user } = session; return <div className="shell"><aside className="sidebar"><div className="brand"><span className="brand-mark">oa</span><span>open<span>ad</span>server</span></div><div className="sidebar-caption">AD OPERATIONS CONSOLE</div><nav>{NAV[user.role].map((item) => <NavLink key={item.to} to={item.to} className={({ isActive }) => isActive ? "active" : ""}>{item.label}</NavLink>)}<div className="nav-section">Tools</div>{SHARED.map((item) => <NavLink key={item.to} to={item.to} className={({ isActive }) => isActive ? "active" : ""}>{item.label}</NavLink>)}</nav><div className="sidebar-foot"><span className="pulse" /> Backend connected<button onClick={() => { logout(); navigate("/login"); }}>Log out</button></div></aside><div className="main"><header className="topbar"><div><span className="muted">{ROLE_LABEL[user.role]} workspace</span><h2>Console</h2></div><div className="actions"><span className="user-avatar">{user.name.slice(0, 1)}</span><span>{user.name}</span><button className="btn secondary small" onClick={() => { logout(); navigate("/login"); }}>Log out</button></div></header><main className="content"><Outlet /></main></div></div>; }
+import {
+  LayoutDashboard,
+  Users,
+  Target,
+  Globe,
+  Wrench,
+  Activity,
+  LogOut,
+  Layers,
+  PlusCircle,
+  Code,
+  ShieldAlert
+} from "lucide-react";
+
+interface NavItem {
+  to: string;
+  label: string;
+  icon: React.ElementType;
+}
+
+const NAV: Record<Role, NavItem[]> = {
+  admin: [
+    { to: "/admin", label: "Overview", icon: LayoutDashboard },
+    { to: "/admin/advertisers", label: "Advertisers", icon: Users },
+    { to: "/admin/campaigns", label: "Campaigns", icon: Target },
+    { to: "/admin/publishers", label: "Publishers", icon: Globe },
+  ],
+  advertiser: [
+    { to: "/advertiser", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/advertiser/campaigns/new", label: "New Campaign", icon: PlusCircle },
+  ],
+  publisher: [
+    { to: "/publisher", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/publisher/integration", label: "Integration", icon: Code },
+  ],
+};
+
+const SHARED: NavItem[] = [
+  { to: "/tools", label: "Ad Tester", icon: Wrench },
+  { to: "/health", label: "System Health", icon: Activity },
+];
+
+const ROLE_LABEL: Record<Role, string> = {
+  admin: "Platform Admin",
+  advertiser: "Advertiser Console",
+  publisher: "Publisher Portal",
+};
+
+export default function Layout() {
+  const { session, logout } = useAuth();
+  const navigate = useNavigate();
+
+  if (!session) return null;
+  const { user } = session;
+
+  return (
+    <div className="shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brand-icon">
+            <Layers size={20} />
+          </div>
+          <span>OpenAdServer</span>
+        </div>
+        <nav>
+          {NAV[user.role].map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === "/admin" || item.to === "/advertiser" || item.to === "/publisher"}
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Icon />
+                <span>{item.label}</span>
+              </NavLink>
+            );
+          })}
+          <div className="nav-section">Tools & System</div>
+          {SHARED.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Icon />
+                <span>{item.label}</span>
+              </NavLink>
+            );
+          })}
+        </nav>
+      </aside>
+
+      <div className="main">
+        <header className="topbar">
+          <div className="muted">
+            <span className="role-pill">{ROLE_LABEL[user.role]}</span>
+          </div>
+          <div className="actions">
+            <div className="user-profile">
+              <div className="user-avatar">{user.name.charAt(0).toUpperCase()}</div>
+              <span>{user.name}</span>
+            </div>
+            <button
+              className="btn secondary small"
+              onClick={() => {
+                logout();
+                navigate("/login");
+              }}
+            >
+              <LogOut size={14} />
+              <span>Log out</span>
+            </button>
+          </div>
+        </header>
+
+        <main className="content">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+}
