@@ -17,3 +17,4 @@ export interface Campaign { id: number; advertiser_id: number; name: string; des
 export interface Creative { id: number; campaign_id: number; title: string; description?: string; image_url?: string; video_url?: string; landing_url: string; creative_type: number; width: number; height: number; status: number; quality_score: number; }
 export interface Publisher { id: number; name: string; email?: string; site_url?: string; status: number; }
 export interface AdSlot { id: number; publisher_id: number; slot_id: string; name: string; format: number; width: number; height: number; status: number; ecpm_today?: number; }
+export interface PublisherReporting { publisher_id: number; start_date: string; end_date: string; impressions: number; clicks: number; conversions: number; earnings: number; ecpm: number; }

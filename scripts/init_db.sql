@@ -123,6 +123,45 @@ CREATE TABLE IF NOT EXISTS hourly_stats (
 CREATE INDEX IF NOT EXISTS idx_stats_campaign_hour ON hourly_stats(campaign_id, stat_hour);
 CREATE INDEX IF NOT EXISTS idx_stats_hour ON hourly_stats(stat_hour);
 
+-- Publisher inventory and reporting tables
+CREATE TABLE IF NOT EXISTS publishers (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    site_url VARCHAR(1024),
+    status SMALLINT DEFAULT 1 NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ad_slots (
+    id BIGSERIAL PRIMARY KEY,
+    publisher_id BIGINT NOT NULL REFERENCES publishers(id) ON DELETE CASCADE,
+    slot_id VARCHAR(255) UNIQUE NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    format SMALLINT DEFAULT 1 NOT NULL,
+    width INTEGER DEFAULT 0 NOT NULL,
+    height INTEGER DEFAULT 0 NOT NULL,
+    status SMALLINT DEFAULT 1 NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_ad_slots_publisher ON ad_slots(publisher_id);
+
+CREATE TABLE IF NOT EXISTS publisher_daily_stats (
+    id BIGSERIAL PRIMARY KEY,
+    publisher_id BIGINT NOT NULL REFERENCES publishers(id) ON DELETE CASCADE,
+    stat_date DATE NOT NULL,
+    impressions BIGINT DEFAULT 0 NOT NULL,
+    clicks BIGINT DEFAULT 0 NOT NULL,
+    conversions BIGINT DEFAULT 0 NOT NULL,
+    earnings DECIMAL(15,6) DEFAULT 0 NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    UNIQUE (publisher_id, stat_date)
+);
+
 -- Insert sample data for testing
 INSERT INTO advertisers (name, company, balance, status) VALUES
     ('Demo Advertiser', 'Demo Company Inc.', 10000.00, 1);
@@ -132,6 +171,16 @@ INSERT INTO campaigns (advertiser_id, name, budget_daily, budget_total, bid_type
 
 INSERT INTO creatives (campaign_id, title, description, image_url, landing_url, creative_type, width, height, status) VALUES
     (1, 'Demo Ad', 'This is a demo advertisement', 'https://via.placeholder.com/300x250', 'https://example.com', 1, 300, 250, 1);
+
+INSERT INTO publishers (name, email, site_url, status)
+SELECT 'Demo Publisher', 'ads@demopublisher.com', 'https://demo-publisher.com', 1
+WHERE NOT EXISTS (SELECT 1 FROM publishers WHERE name = 'Demo Publisher');
+
+INSERT INTO ad_slots (publisher_id, slot_id, name, format, width, height, status)
+SELECT p.id, 'banner_home_top', 'Home Top Banner', 1, 300, 250, 1
+FROM publishers p
+WHERE p.name = 'Demo Publisher'
+    AND NOT EXISTS (SELECT 1 FROM ad_slots WHERE slot_id = 'banner_home_top');
 
 -- Print success message
 DO $$

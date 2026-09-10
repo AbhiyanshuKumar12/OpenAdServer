@@ -63,6 +63,7 @@ async def track_event_get(
     type: str = Query(..., alias="type", description="Event type"),
     req: str = Query(..., description="Request ID"),
     ad: str = Query(..., description="Ad ID"),
+    slot: str | None = Query(None, description="Publisher slot ID"),
     event_service: EventService = Depends(get_event_service),
 ) -> EventResponse:
     """
@@ -84,7 +85,7 @@ async def track_event_get(
         event_type=type,
         user_id=None,
         timestamp=current_timestamp(),
-        extra=None,
+        extra={"slot_id": slot} if slot else None,
     )
 
     return EventResponse(

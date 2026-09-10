@@ -8,12 +8,13 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from liteads.common.cache import CacheKeys, redis_client
 from liteads.common.logger import get_logger
 from liteads.common.utils import current_date, current_hour
-from liteads.models import AdEvent, EventType
+from liteads.models import AdEvent, AdSlot, Campaign, Creative, EventType, PublisherDailyStat
 
 logger = get_logger(__name__)
 
@@ -52,6 +53,8 @@ class EventService:
                 return False
 
             # Create event record
+            campaign = await self.session.get(Campaign, campaign_id) if campaign_id else None
+            cost = self._calculate_cost(event_type_enum, campaign)
             event = AdEvent(
                 request_id=request_id,
                 campaign_id=campaign_id,
@@ -61,11 +64,14 @@ class EventService:
                 if timestamp
                 else datetime.now(timezone.utc),
                 user_id=user_id,
-                cost=self._calculate_cost(event_type_enum, campaign_id),
+                cost=cost,
             )
 
             self.session.add(event)
             await self.session.flush()
+
+            await self._update_campaign_stats(campaign, creative_id, event_type_enum)
+            await self._update_publisher_stats(event_type_enum, cost, extra)
 
             # Update real-time stats in Redis
             await self._update_stats(campaign_id, event_type_enum)
@@ -113,15 +119,75 @@ class EventService:
         }
         return mapping.get(event_type.lower())
 
-    def _calculate_cost(
+    def _calculate_cost(self, event_type: int, campaign: Campaign | None) -> Decimal:
+        """Calculate cost for the event."""
+        if campaign is None:
+            return Decimal("0.000000")
+        if campaign.bid_type == 1 and event_type == EventType.IMPRESSION:
+            return Decimal(campaign.bid_amount) / Decimal("1000")
+        if campaign.bid_type == 2 and event_type == EventType.CLICK:
+            return Decimal(campaign.bid_amount)
+        if campaign.bid_type == 3 and event_type == EventType.CONVERSION:
+            return Decimal(campaign.bid_amount)
+        return Decimal("0.000000")
+
+    async def _update_campaign_stats(
+        self,
+        campaign: Campaign | None,
+        creative_id: int | None,
+        event_type: int,
+    ) -> None:
+        """Update cached campaign and creative counters."""
+        if campaign is None:
+            return
+        if event_type == EventType.IMPRESSION:
+            campaign.impressions += 1
+        elif event_type == EventType.CLICK:
+            campaign.clicks += 1
+        elif event_type == EventType.CONVERSION:
+            campaign.conversions += 1
+        if creative_id:
+            creative = await self.session.get(Creative, creative_id)
+            if creative:
+                if event_type == EventType.IMPRESSION:
+                    creative.impressions += 1
+                elif event_type == EventType.CLICK:
+                    creative.clicks += 1
+                elif event_type == EventType.CONVERSION:
+                    creative.conversions += 1
+
+    async def _update_publisher_stats(
         self,
         event_type: int,
-        campaign_id: int | None,
-    ) -> Decimal:
-        """Calculate cost for the event."""
-        # TODO: Implement proper cost calculation based on bid type
-        # For now, return 0
-        return Decimal("0.000000")
+        cost: Decimal,
+        extra: dict[str, Any] | None,
+    ) -> None:
+        """Attribute tracked delivery to a slot and persist publisher earnings."""
+        slot_id = extra.get("slot_id") if extra else None
+        if not slot_id:
+            return
+        result = await self.session.execute(select(AdSlot).where(AdSlot.slot_id == slot_id))
+        slot = result.scalar_one_or_none()
+        if slot is None:
+            return
+        stat_date = datetime.now(timezone.utc).date()
+        result = await self.session.execute(
+            select(PublisherDailyStat).where(
+                PublisherDailyStat.publisher_id == slot.publisher_id,
+                PublisherDailyStat.stat_date == stat_date,
+            )
+        )
+        stat = result.scalar_one_or_none()
+        if stat is None:
+            stat = PublisherDailyStat(publisher_id=slot.publisher_id, stat_date=stat_date)
+            self.session.add(stat)
+        if event_type == EventType.IMPRESSION:
+            stat.impressions += 1
+        elif event_type == EventType.CLICK:
+            stat.clicks += 1
+        elif event_type == EventType.CONVERSION:
+            stat.conversions += 1
+        stat.earnings += cost * Decimal("0.70")
 
     async def _update_stats(self, campaign_id: int | None, event_type: int) -> None:
         """Update real-time statistics in Redis."""

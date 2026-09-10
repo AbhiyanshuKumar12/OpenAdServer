@@ -13,18 +13,11 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import DeclarativeBase
-
 from liteads.common.config import get_settings
 from liteads.common.logger import get_logger
+from liteads.models.base import Base
 
 logger = get_logger(__name__)
-
-
-class Base(DeclarativeBase):
-    """SQLAlchemy declarative base class."""
-
-    pass
 
 
 class DatabaseManager:
@@ -159,6 +152,8 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 
 async def create_tables() -> None:
     """Create all tables in the database."""
+    import liteads.models  # noqa: F401  # register all model metadata
+
     async with db.engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database tables created")
