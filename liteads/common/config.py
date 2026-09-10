@@ -209,6 +209,29 @@ def get_settings() -> Settings:
     if "monitoring" in merged:
         flat_config["monitoring"] = MonitoringSettings(**merged["monitoring"])
 
+    # Nested settings are created from YAML above, so apply environment overrides
+    # explicitly for deployments such as Docker Compose.
+    database = flat_config.get("database", DatabaseSettings())
+    flat_config["database"] = database.model_copy(
+        update={
+            "host": os.getenv("LITEADS_DATABASE__HOST", database.host),
+            "port": int(os.getenv("LITEADS_DATABASE__PORT", database.port)),
+            "name": os.getenv("LITEADS_DATABASE__NAME", database.name),
+            "user": os.getenv("LITEADS_DATABASE__USER", database.user),
+            "password": os.getenv("LITEADS_DATABASE__PASSWORD", database.password),
+        }
+    )
+
+    redis = flat_config.get("redis", RedisSettings())
+    flat_config["redis"] = redis.model_copy(
+        update={
+            "host": os.getenv("LITEADS_REDIS__HOST", redis.host),
+            "port": int(os.getenv("LITEADS_REDIS__PORT", redis.port)),
+            "db": int(os.getenv("LITEADS_REDIS__DB", redis.db)),
+            "password": os.getenv("LITEADS_REDIS__PASSWORD", redis.password),
+        }
+    )
+
     return Settings(**flat_config)
 
 

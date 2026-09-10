@@ -37,6 +37,9 @@ CREATE TABLE IF NOT EXISTS campaigns (
     freq_cap_daily SMALLINT,
     freq_cap_hourly SMALLINT,
     status SMALLINT DEFAULT 1 NOT NULL,
+    impressions BIGINT DEFAULT 0 NOT NULL,
+    clicks BIGINT DEFAULT 0 NOT NULL,
+    conversions BIGINT DEFAULT 0 NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
@@ -58,6 +61,7 @@ CREATE TABLE IF NOT EXISTS creatives (
     width SMALLINT,
     height SMALLINT,
     status SMALLINT DEFAULT 1 NOT NULL,
+    quality_score SMALLINT DEFAULT 80 NOT NULL,
     impressions BIGINT DEFAULT 0 NOT NULL,
     clicks BIGINT DEFAULT 0 NOT NULL,
     conversions BIGINT DEFAULT 0 NOT NULL,

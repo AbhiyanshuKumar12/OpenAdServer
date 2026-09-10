@@ -48,3 +48,10 @@ class CreativeType(IntEnum):
     NATIVE = 2
     VIDEO = 3
     INTERSTITIAL = 4
+
+
+class EventType(IntEnum):
+    """Tracked ad event type enum."""
+    IMPRESSION = 1
+    CLICK = 2
+    CONVERSION = 3

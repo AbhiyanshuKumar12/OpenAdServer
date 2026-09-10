@@ -14,11 +14,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy source code for building wheel
 COPY pyproject.toml ./
+COPY README.md ./
 COPY liteads ./liteads
 
 # Build wheel
 RUN pip install --no-cache-dir build hatchling && \
-    pip wheel --no-cache-dir --wheel-dir=/app/wheels .
+    pip wheel --no-cache-dir --no-deps --wheel-dir=/app/wheels .
 
 # Runtime stage
 FROM python:3.11-slim as runtime
@@ -30,6 +31,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --shell /bin/bash liteads
+
+# Use the CPU PyTorch wheel; this service does not require NVIDIA CUDA packages.
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
 
 # Copy wheels from builder
 COPY --from=builder /app/wheels /app/wheels

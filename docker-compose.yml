@@ -7,7 +7,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - LITEADS_ENV=prod
+      - LITEADS_ENV=dev
       - LITEADS_DATABASE__HOST=postgres
       - LITEADS_DATABASE__PORT=5432
       - LITEADS_DATABASE__NAME=liteads

@@ -21,7 +21,14 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from liteads.models.base import Base, BidType, CreativeType, Status, TimestampMixin
+from liteads.models.base import (
+    Base,
+    BidType,
+    CreativeType,
+    EventType,
+    Status,
+    TimestampMixin,
+)
 
 
 class Advertiser(Base, TimestampMixin):
@@ -91,6 +98,17 @@ class Campaign(Base, TimestampMixin):
     targeting_rules: Mapped[list["TargetingRule"]] = relationship(
         "TargetingRule", back_populates="campaign", lazy="selectin"
     )
+
+    @property
+    def is_active(self) -> bool:
+        """Return whether the campaign is currently eligible to serve."""
+        reference_time = self.start_time or self.end_time
+        now = datetime.now(reference_time.tzinfo) if reference_time else datetime.now()
+        return (
+            self.status == Status.ACTIVE
+            and (self.start_time is None or self.start_time <= now)
+            and (self.end_time is None or self.end_time >= now)
+        )
 
 
 class Creative(Base, TimestampMixin):
@@ -172,3 +190,25 @@ class HourlyStat(Base):
     # Calculated metrics
     ctr: Mapped[Decimal] = mapped_column(Numeric(8, 6), default=Decimal("0"))
     cvr: Mapped[Decimal] = mapped_column(Numeric(8, 6), default=Decimal("0"))
+
+
+class AdEvent(Base, TimestampMixin):
+    """Recorded impression, click, or conversion event."""
+
+    __tablename__ = "ad_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    request_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    campaign_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("campaigns.id", ondelete="SET NULL"), nullable=True
+    )
+    creative_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("creatives.id", ondelete="SET NULL"), nullable=True
+    )
+    event_type: Mapped[int] = mapped_column(Integer, nullable=False)
+    event_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    user_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    cost: Mapped[Decimal] = mapped_column(
+        Numeric(10, 6), default=Decimal("0"), nullable=False
+    )
